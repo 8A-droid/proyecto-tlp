@@ -1,0 +1,279 @@
+{
+  "shapes": {
+    "T_PIECE": {
+      "color": "#00FFFF", 
+      "estados": [
+        [
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            1
+          ], 
+          [
+            0, 
+            0, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            1
+          ], 
+          [
+            0, 
+            1, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            0, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            1
+          ], 
+          [
+            0, 
+            1, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0
+          ]
+        ]
+      ], 
+      "chance": 1
+    }, 
+    "L_PIECE": {
+      "color": "#00FFFF", 
+      "estados": [
+        [
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            1
+          ]
+        ], 
+        [
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            0, 
+            1
+          ], 
+          [
+            1, 
+            1, 
+            1
+          ], 
+          [
+            0, 
+            0, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            0, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            1
+          ], 
+          [
+            1, 
+            0, 
+            0
+          ]
+        ]
+      ], 
+      "chance": 1
+    }, 
+    "I_PIECE": {
+      "color": "#00FFFF", 
+      "estados": [
+        [
+          [
+            0, 
+            1, 
+            0, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0, 
+            0
+          ], 
+          [
+            0, 
+            1, 
+            0, 
+            0
+          ]
+        ], 
+        [
+          [
+            0, 
+            0, 
+            0, 
+            0
+          ], 
+          [
+            1, 
+            1, 
+            1, 
+            1
+          ], 
+          [
+            0, 
+            0, 
+            0, 
+            0
+          ], 
+          [
+            0, 
+            0, 
+            0, 
+            0
+          ]
+        ]
+      ], 
+      "chance": 1
+    }
+  }, 
+  "tipo_juego": "TETRIS", 
+  "config": {
+    "color_grid_fija": "#343434", 
+    "speed": 0.4, 
+    "grid_size": [
+      10, 
+      20
+    ]
+  }, 
+  "events": {
+    "ON_KEY_DOWN": [
+      {
+        "params": [
+          "DOWN"
+        ], 
+        "accion": "MOVE", 
+        "objeto": "CURRENT_PIECE"
+      }
+    ], 
+    "ON_KEY_UP": [
+      {
+        "params": [], 
+        "accion": "ROTATE", 
+        "objeto": "CURRENT_PIECE"
+      }
+    ], 
+    "ON_TICK": [
+      {
+        "params": [
+          "DOWN"
+        ], 
+        "accion": "MOVE", 
+        "objeto": "CURRENT_PIECE"
+      }
+    ], 
+    "ON_LINE_CLEAR": [
+      {
+        "params": [], 
+        "accion": "INCREASE_SCORE", 
+        "objeto": "100"
+      }
+    ], 
+    "ON_START": [
+      {
+        "params": [], 
+        "accion": "SPAWN", 
+        "objeto": "RANDOM_SHAPE"
+      }
+    ], 
+    "ON_KEY_RIGHT": [
+      {
+        "params": [
+          "RIGHT"
+        ], 
+        "accion": "MOVE", 
+        "objeto": "CURRENT_PIECE"
+      }
+    ], 
+    "ON_KEY_LEFT": [
+      {
+        "params": [
+          "LEFT"
+        ], 
+        "accion": "MOVE", 
+        "objeto": "CURRENT_PIECE"
+      }
+    ]
+  }, 
+  "powerups": {}
+}
