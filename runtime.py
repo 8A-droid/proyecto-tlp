@@ -25,6 +25,8 @@ class Juego:
         # Configuracion
         config_speed = config.get('speed', 0.4)
         self.speed_multiplier = config.get('speed', 1.0)
+        # Leer la forma de la serpiente (por defecto SQUARE)
+        self.snake_shape = config.get('snake_shape', 'SQUARE')
         
         # GUI
         self.root = tk.Tk()
@@ -108,20 +110,32 @@ class Juego:
         if self.tipo_juego == 'SNAKE':
             if self.posicion_comida:
                 x, y = self.posicion_comida
-                self.dibujar_celda(x, y, '#FF0000')
+                # Opcional: Si quieres que la manzana también sea redonda, cámbialo a shape=self.snake_shape
+                self.dibujar_celda(x, y, '#FF0000', shape='SQUARE')
+                
             for i, segmento in enumerate(self.serpiente_cuerpo):
                 x, y = segmento
                 color = '#00FF00' if i == 0 else '#33CC33'
-                self.dibujar_celda(x, y, color)
+                # Aquí inyectamos la forma que leímos del archivo .json
+                self.dibujar_celda(x, y, color, shape=self.snake_shape)
         
         # Actualizar puntuacion
         self.label_score.config(text="PUNTUACION\n" + str(self.puntuacion))
 
-    def dibujar_celda(self, x, y, color):
+    def dibujar_celda(self, x, y, color, shape='SQUARE'):
         ts = self.taman_celda
         x1, y1 = x * ts, y * ts
         x2, y2 = x1 + ts, y1 + ts
-        self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#000000')
+        
+        if shape == 'CIRCULAR':
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline='#000000')
+        elif shape == 'TRIANGULAR':
+            # Calculamos la mitad exacta de la celda para la punta superior
+            mitad_x = (x1 + x2) / 2.0
+            # Puntos: (mitad_arriba), (esquina_inferior_izq), (esquina_inferior_der)
+            self.canvas.create_polygon(mitad_x, y1, x1, y2, x2, y2, fill=color, outline='#000000')
+        else:
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#000000')
 
     def ejecutar_evento(self, nombre_evento):
         if nombre_evento not in self.datos_juego.get('events', {}):

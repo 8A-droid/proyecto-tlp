@@ -33,6 +33,9 @@ class Parser:
                     self.parsear_powerup()
                 else:
                     self.posicion += 1
+            elif token_actual == 'SNAKE_SHAPE':
+                self.consumir('SNAKE_SHAPE')
+                self.ast['config']['snake_shape'] = self.consumir()
             elif token_actual == 'ON':
                 self.parsear_evento()
             else:
@@ -67,6 +70,8 @@ class Parser:
             self.ast['config']['speed'] = 0.4 if self.ast['tipo_juego'] == 'TETRIS' else 0.15
         if 'color_grid_fija' not in self.ast['config']:
             self.ast['config']['color_grid_fija'] = '#343434'
+        if 'snake_shape' not in self.ast['config']:
+            self.ast['config']['snake_shape'] = 'SQUARE'
 
     def parsear_shape(self):
         self.consumir('DEFINE')

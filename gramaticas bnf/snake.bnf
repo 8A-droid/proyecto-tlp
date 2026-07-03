@@ -2,7 +2,12 @@
 
 <tipo_juego> ::= "GAME_TYPE" "SNAKE"
 <grid>       ::= "GAME_GRID" "(" <numero> "," <numero> ")"
-<definiciones> ::= <definicion_shape> | <definicion_shape> <definiciones>
+<definiciones> ::= <definicion> | <definicion> <definiciones>
+<definicion> ::= <definicion_shape> | <definicion_geometria_serpiente>
+
+<definicion_shape> ::= "DEFINE" "SHAPE" <identificador> ":" <estados> "END"
+<definicion_geometria_serpiente> ::= "SNAKE_SHAPE" <tipo_geometria>
+<tipo_geometria> ::= "SQUARE" | "CIRCULAR" | "TRIANGULAR"
 <eventos>    ::= <evento> | <evento> <eventos>
 
 <definicion_shape> ::= "DEFINE" "SHAPE" <identificador> ":" <estados> "END"
