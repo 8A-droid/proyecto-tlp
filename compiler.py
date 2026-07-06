@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # compiler.py
 # Compilador universal para BrickScript (Version Final y Depurada)
 # Uso: python compiler.py <archivo_entrada.brick>
@@ -179,8 +180,8 @@ class Parser:
         while self.posicion < len(self.tokens) and self.tokens[self.posicion] != 'END':
             verbo = self.consumir()
             
-            # Si el comando es de una sola palabra, lo anadimos y continuamos
-            if verbo == 'GAME_OVER':
+            # Si el comando es de una sola palabra, lo añadimos y continuamos
+            if verbo in ['GAME_OVER', 'LOSE_ALL_SCORE']:
                 acciones.append({'accion': verbo, 'objeto': None, 'params': []})
                 continue
             
@@ -198,7 +199,8 @@ class Parser:
                     y = int(self.consumir())
                     self.consumir(')')
                     params.append([x, y])
-            elif self.posicion < len(self.tokens) and self.tokens[self.posicion] not in ['END', 'ON', 'DEFINE', 'SPAWN', 'MOVE', 'ROTATE', 'INCREASE_SCORE', 'SET_DIRECTION', 'GROW', 'GAME_OVER']:
+            # Se añaden los nuevos comandos a la lista de ignorados como params
+            elif self.posicion < len(self.tokens) and self.tokens[self.posicion] not in ['END', 'ON', 'DEFINE', 'SPAWN', 'MOVE', 'ROTATE', 'INCREASE_SCORE', 'DECREASE_SCORE', 'LOSE_ALL_SCORE', 'MAKE_INVINCIBLE', 'SET_DIRECTION', 'GROW', 'GAME_OVER']:
                 params.append(self.consumir())
             acciones.append({'accion': verbo, 'objeto': objeto, 'params': params})
         self.consumir('END')

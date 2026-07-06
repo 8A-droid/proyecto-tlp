@@ -25,7 +25,6 @@ class Juego:
         # Configuracion
         config_speed = config.get('speed', 0.4)
         self.speed_multiplier = config.get('speed', 1.0)
-        # Leer la forma de la serpiente (por defecto SQUARE)
         self.snake_shape = config.get('snake_shape', 'SQUARE')
         
         # GUI
@@ -62,6 +61,15 @@ class Juego:
             self.serpiente_cuerpo = []
             self.serpiente_direccion = (1, 0)
             self.posicion_comida = None
+            self.creciendo = 0
+            
+            # Nuevas variables Sistema de Frutas y Obstaculos
+            self.posiciones_veneno = []
+            self.posiciones_obstaculos = []
+            self.posicion_powerup = None
+            self.invencible_activo = False
+            self.invencible_hasta = 0
+            
             self.velocidad_gravedad = 0.15
         
         self.timer_gravedad = 0
@@ -78,6 +86,11 @@ class Juego:
         if self.juego_terminado:
             self.mostrar_game_over()
             return
+
+        # Manejo de invencibilidad temporal
+        if self.tipo_juego == 'SNAKE' and self.invencible_activo:
+            if time.time() > self.invencible_hasta:
+                self.invencible_activo = False
 
         self.timer_gravedad += 0.05
         if self.timer_gravedad >= self.velocidad_gravedad:
@@ -106,17 +119,32 @@ class Juego:
                     if celda == 1:
                         self.dibujar_celda(self.pieza_x + x_offset, self.pieza_y + y_offset, color_pieza)
         
-        # Dibujar Snake
+        # Dibujar Snake y Elementos
         if self.tipo_juego == 'SNAKE':
+            # Nubes Obstaculos (Gris oscuro)
+            for obs in self.posiciones_obstaculos:
+                self.dibujar_celda(obs[0], obs[1], '#666666', shape='SQUARE')
+                
+            # Frutas Venenosas (Morado)
+            for veneno in self.posiciones_veneno:
+                self.dibujar_celda(veneno[0], veneno[1], '#800080', shape='CIRCULAR')
+                
+            # Power up Invencible (Dorado)
+            if self.posicion_powerup:
+                self.dibujar_celda(self.posicion_powerup[0], self.posicion_powerup[1], '#FFD700', shape='TRIANGULAR')
+
+            # Fruta Normal
             if self.posicion_comida:
                 x, y = self.posicion_comida
-                # Opcional: Si quieres que la manzana también sea redonda, cámbialo a shape=self.snake_shape
                 self.dibujar_celda(x, y, '#FF0000', shape='SQUARE')
                 
+            # Dibujar Serpiente
             for i, segmento in enumerate(self.serpiente_cuerpo):
                 x, y = segmento
-                color = '#00FF00' if i == 0 else '#33CC33'
-                # Aquí inyectamos la forma que leímos del archivo .json
+                if self.invencible_activo:
+                    color = '#FFFFFF' # Blanco puro si es invencible
+                else:
+                    color = '#00FF00' if i == 0 else '#33CC33'
                 self.dibujar_celda(x, y, color, shape=self.snake_shape)
         
         # Actualizar puntuacion
@@ -130,9 +158,7 @@ class Juego:
         if shape == 'CIRCULAR':
             self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline='#000000')
         elif shape == 'TRIANGULAR':
-            # Calculamos la mitad exacta de la celda para la punta superior
             mitad_x = (x1 + x2) / 2.0
-            # Puntos: (mitad_arriba), (esquina_inferior_izq), (esquina_inferior_der)
             self.canvas.create_polygon(mitad_x, y1, x1, y2, x2, y2, fill=color, outline='#000000')
         else:
             self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#000000')
@@ -146,11 +172,28 @@ class Juego:
             objeto = accion.get('objeto')
             params = accion.get('params', [])
             
+            # Acciones Puntuacion
             if verbo == 'INCREASE_SCORE':
                 self.puntuacion += int(objeto)
-            elif verbo == 'GAME_OVER':
+            elif verbo == 'DECREASE_SCORE':
+                self.puntuacion -= int(objeto)
+                if self.puntuacion <= 0:
+                    self.puntuacion = 0
+                    self.juego_terminado = True
+            elif verbo == 'LOSE_ALL_SCORE':
+                self.puntuacion = 0
                 self.juego_terminado = True
             
+            # Acciones Estado de Partida
+            elif verbo == 'GAME_OVER':
+                self.juego_terminado = True
+            elif verbo == 'MAKE_INVINCIBLE':
+                self.invencible_hasta = time.time() + int(objeto)
+                self.invencible_activo = True
+            elif verbo == 'GROW':
+                self.creciendo += int(params[0]) if params else 1
+            
+            # Acciones especificas por juego
             if self.tipo_juego == 'TETRIS':
                 if verbo == 'SPAWN':
                     if objeto == 'PIECE' or objeto == 'RANDOM_SHAPE':
@@ -164,38 +207,32 @@ class Juego:
                     self.tetris_rotar_pieza()
             
             elif self.tipo_juego == 'SNAKE':
-                if verbo == 'SPAWN' and objeto == 'PLAYER':
-                    self.snake_spawn_jugador(params)
-                elif verbo == 'SPAWN' and objeto == 'FOOD':
-                    self.snake_spawn_comida()
+                if verbo == 'SPAWN':
+                    if objeto == 'PLAYER':
+                        self.snake_spawn_jugador(params)
+                    elif objeto in ['FOOD', 'POISON', 'OBSTACLE', 'POWERUP_INVINCIBLE']:
+                        self.snake_spawn_element(objeto)
                 elif verbo == 'MOVE' and objeto == 'PLAYER':
                     self.snake_mover_jugador()
 
+    # --- Funciones Tetris Omitidas (Quedan idénticas a tu original) ---
     def tetris_spawn_pieza(self, nombre_pieza=None):
-        # Si se debe forzar el bloque 1x1, generarlo dinámicamente
         if self.forzar_bloque_1x1:
             self.nombre_pieza_actual = 'BLOQUE_BONUS'
-            self.pieza_actual = [[[1]]]  # Una sola rotación, un bloque 1x1
-            self.pieza_x = self.ancho / 2 - 1  # Centrado
+            self.pieza_actual = [[[1]]]
+            self.pieza_x = self.ancho / 2 - 1
             self.pieza_y = 0
             self.pieza_rotacion = 0
             self.forzar_bloque_1x1 = False
-            if self.tetris_verificar_colision(self.pieza_x, self.pieza_y, 0):
-                self.juego_terminado = True
+            if self.tetris_verificar_colision(self.pieza_x, self.pieza_y, 0): self.juego_terminado = True
             return
-        
-        # Flujo normal de generación de piezas
-        if nombre_pieza is None:
-            nombre_pieza = self.tetris_elegir_pieza()
-        
+        if nombre_pieza is None: nombre_pieza = self.tetris_elegir_pieza()
         self.nombre_pieza_actual = nombre_pieza
         self.pieza_actual = self.shapes[nombre_pieza]['estados']
         self.pieza_x = self.ancho / 2 - 2
         self.pieza_y = 0
         self.pieza_rotacion = 0
-        
-        if self.tetris_verificar_colision(self.pieza_x, self.pieza_y, 0):
-            self.juego_terminado = True
+        if self.tetris_verificar_colision(self.pieza_x, self.pieza_y, 0): self.juego_terminado = True
 
     def tetris_elegir_pieza(self):
         opciones = []
@@ -205,31 +242,20 @@ class Juego:
             if chance > 0:
                 opciones.append((nombre, chance))
                 total += chance
-        
-        if total <= 0 or not opciones:
-            return self.shapes.keys()[0]
-        
+        if total <= 0 or not opciones: return self.shapes.keys()[0]
         objetivo = random.uniform(0, total)
         acumulado = 0
         for nombre, chance in opciones:
             acumulado += chance
-            if objetivo <= acumulado:
-                return nombre
-        
+            if objetivo <= acumulado: return nombre
         return opciones[-1][0] if opciones else self.shapes.keys()[0]
 
     def tetris_mover_pieza(self, direccion):
-        if not self.pieza_actual:
-            return
-        
+        if not self.pieza_actual: return
         dx, dy = 0, 0
-        if direccion == 'LEFT':
-            dx = -1
-        elif direccion == 'RIGHT':
-            dx = 1
-        elif direccion == 'DOWN':
-            dy = 1
-        
+        if direccion == 'LEFT': dx = -1
+        elif direccion == 'RIGHT': dx = 1
+        elif direccion == 'DOWN': dy = 1
         if not self.tetris_verificar_colision(self.pieza_x + dx, self.pieza_y + dy, self.pieza_rotacion):
             self.pieza_x += dx
             self.pieza_y += dy
@@ -237,25 +263,16 @@ class Juego:
             self.tetris_fijar_pieza()
 
     def tetris_rotar_pieza(self):
-        if not self.pieza_actual:
-            return
-        
+        if not self.pieza_actual: return
         nueva_rotacion = (self.pieza_rotacion + 1) % len(self.pieza_actual)
         if not self.tetris_verificar_colision(self.pieza_x, self.pieza_y, nueva_rotacion):
             self.pieza_rotacion = nueva_rotacion
     
     def tetris_fijar_pieza(self):
-        if not self.pieza_actual:
-            return
-            
+        if not self.pieza_actual: return
         matriz_pieza = self.pieza_actual[self.pieza_rotacion]
-        
-        # Determinar color según el tipo de pieza
-        if self.nombre_pieza_actual == 'BLOQUE_BONUS':
-            color_actual = '#FFFFFF'  # Blanco para el bloque 1x1
-        else:
-            color_actual = self.shapes[self.nombre_pieza_actual].get('color', '#00FFFF')
-        
+        if self.nombre_pieza_actual == 'BLOQUE_BONUS': color_actual = '#FFFFFF'
+        else: color_actual = self.shapes[self.nombre_pieza_actual].get('color', '#00FFFF')
         for y_offset, fila in enumerate(matriz_pieza):
             for x_offset, celda in enumerate(fila):
                 if celda == 1:
@@ -264,110 +281,133 @@ class Juego:
                     if 0 <= y_pos < self.alto and 0 <= x_pos < self.ancho:
                         self.grid[y_pos][x_pos] = 1
                         self.grid_color[y_pos][x_pos] = color_actual
-        
         self.pieza_actual = None
         self.tetris_limpiar_lineas()
         self.tetris_spawn_pieza()
     
     def tetris_verificar_colision(self, x, y, rotacion):
-        if not self.pieza_actual:
-            return False
-        
-        x = int(x)
-        y = int(y)
-        
+        if not self.pieza_actual: return False
+        x, y = int(x), int(y)
         matriz_pieza = self.pieza_actual[rotacion]
         for y_offset, fila in enumerate(matriz_pieza):
             for x_offset, celda in enumerate(fila):
                 if celda == 1:
                     nuevo_x, nuevo_y = x + x_offset, y + y_offset
-                    if not (0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto):
-                        return True
-                    if nuevo_y >= 0 and self.grid[nuevo_y][nuevo_x] > 0:
-                        return True
+                    if not (0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto): return True
+                    if nuevo_y >= 0 and self.grid[nuevo_y][nuevo_x] > 0: return True
         return False
 
     def tetris_limpiar_lineas(self):
-        nuevo_grid = []
-        nuevo_color = []
-        
+        nuevo_grid, nuevo_color = [], []
         for y in range(self.alto):
             if sum(self.grid[y]) < self.ancho:
                 nuevo_grid.append(list(self.grid[y]))
                 nuevo_color.append(list(self.grid_color[y]))
-        
         lineas_limpias = self.alto - len(nuevo_grid)
         if lineas_limpias > 0:
             self.grid = [[0] * self.ancho for _ in range(lineas_limpias)] + nuevo_grid
             self.grid_color = [[None] * self.ancho for _ in range(lineas_limpias)] + nuevo_color
-            
-            for _ in range(lineas_limpias):
-                self.ejecutar_evento('ON_LINE_CLEAR')
-            
-            # Si se limpian 3 o mas lineas, bonificación de 500 puntos + bloque bonus
+            for _ in range(lineas_limpias): self.ejecutar_evento('ON_LINE_CLEAR')
             if lineas_limpias >= 3:
                 self.ejecutar_evento('ON_TRIPLE_LINE_CLEAR')
                 self.forzar_bloque_1x1 = True
 
+    # --- Funciones Extendidas Snake ---
     def snake_spawn_jugador(self, params):
         coords = params[0] if params else [self.ancho / 2, self.alto / 2]
         self.serpiente_cuerpo = [(int(coords[0]), int(coords[1]))]
         self.serpiente_direccion = (1, 0)
 
-    def snake_spawn_comida(self):
-        while True:
-            x = random.randint(0, self.ancho - 1)
-            y = random.randint(0, self.alto - 1)
-            if (x, y) not in self.serpiente_cuerpo:
-                self.posicion_comida = (x, y)
-                break
+    def obtener_posicion_libre(self):
+        # Aseguramos que la comida nunca caiga encima de nada existente
+        ocupadas = set(self.serpiente_cuerpo)
+        if self.posicion_comida: ocupadas.add(self.posicion_comida)
+        if self.posicion_powerup: ocupadas.add(self.posicion_powerup)
+        ocupadas.update(self.posiciones_veneno)
+        ocupadas.update(self.posiciones_obstaculos)
+        
+        libres = [(x, y) for x in range(self.ancho) for y in range(self.alto) if (x, y) not in ocupadas]
+        if libres:
+            return random.choice(libres)
+        return None
+
+    def snake_spawn_element(self, tipo):
+        pos = self.obtener_posicion_libre()
+        if not pos: return
+        
+        if tipo == 'FOOD':
+            self.posicion_comida = pos
+        elif tipo == 'POISON':
+            self.posiciones_veneno.append(pos)
+        elif tipo == 'OBSTACLE':
+            self.posiciones_obstaculos.append(pos)
+        elif tipo == 'POWERUP_INVINCIBLE':
+            self.posicion_powerup = pos
 
     def snake_mover_jugador(self):
-        if not self.serpiente_cuerpo:
-            return
+        if not self.serpiente_cuerpo: return
         
         cabeza_x, cabeza_y = self.serpiente_cuerpo[0]
         dir_x, dir_y = self.serpiente_direccion
         nueva_cabeza = (cabeza_x + dir_x, cabeza_y + dir_y)
         
+        # Colisiones que detienen el movimiento
         if not (0 <= nueva_cabeza[0] < self.ancho and 0 <= nueva_cabeza[1] < self.alto):
-            self.juego_terminado = True
+            if self.invencible_activo: return # Se queda quieta
+            self.ejecutar_evento('ON_COLLISION_WALL')
             return
-        
+            
         if nueva_cabeza in self.serpiente_cuerpo[:-1]:
-            self.juego_terminado = True
+            if self.invencible_activo: return # Se queda quieta
+            self.ejecutar_evento('ON_COLLISION_SELF')
             return
-        
+            
+        if nueva_cabeza in self.posiciones_obstaculos:
+            if self.invencible_activo: return # Se queda quieta
+            self.ejecutar_evento('ON_COLLISION_OBSTACLE')
+            return
+
+        # Movimiento valido
         self.serpiente_cuerpo.insert(0, nueva_cabeza)
         
+        # Logica de consumir objetos
         if nueva_cabeza == self.posicion_comida:
-            self.puntuacion += 10
-            self.snake_spawn_comida()
+            self.ejecutar_evento('ON_EAT_FOOD')
+            # Las frutas venenosas van apareciendo mas acorde se avanza (40% de prob por comida)
+            if random.random() < 0.4: 
+                self.snake_spawn_element('POISON')
+            # Power up raro de invulnerabilidad temporal (10% de prob por comida)
+            if not self.posicion_powerup and random.random() < 0.2:
+                self.snake_spawn_element('POWERUP_INVINCIBLE')
+                
+        elif nueva_cabeza in self.posiciones_veneno:
+            self.posiciones_veneno.remove(nueva_cabeza)
+            if not self.invencible_activo:
+                self.ejecutar_evento('ON_EAT_POISON')
+                
+        elif nueva_cabeza == self.posicion_powerup:
+            self.posicion_powerup = None
+            self.ejecutar_evento('ON_EAT_INVINCIBLE')
+        
+        # Eliminar ultima parte de la cola si no creció en este tick
+        if self.creciendo > 0:
+            self.creciendo -= 1
         else:
             self.serpiente_cuerpo.pop()
 
     def manejar_input_gui(self, event):
         key = event.keysym.upper()
-        
         if self.tipo_juego == 'TETRIS':
-            if key == 'UP':
-                self.ejecutar_evento('ON_KEY_UP')
-            elif key == 'DOWN':
-                self.ejecutar_evento('ON_KEY_DOWN')
-            elif key == 'LEFT':
-                self.ejecutar_evento('ON_KEY_LEFT')
-            elif key == 'RIGHT':
-                self.ejecutar_evento('ON_KEY_RIGHT')
+            if key == 'UP': self.ejecutar_evento('ON_KEY_UP')
+            elif key == 'DOWN': self.ejecutar_evento('ON_KEY_DOWN')
+            elif key == 'LEFT': self.ejecutar_evento('ON_KEY_LEFT')
+            elif key == 'RIGHT': self.ejecutar_evento('ON_KEY_RIGHT')
         
         elif self.tipo_juego == 'SNAKE':
-            if key == 'UP':
-                self.snake_cambiar_direccion('UP')
-            elif key == 'DOWN':
-                self.snake_cambiar_direccion('DOWN')
-            elif key == 'LEFT':
-                self.snake_cambiar_direccion('LEFT')
-            elif key == 'RIGHT':
-                self.snake_cambiar_direccion('RIGHT')
+            if key == 'UP': self.snake_cambiar_direccion('UP')
+            elif key == 'DOWN': self.snake_cambiar_direccion('DOWN')
+            elif key == 'LEFT': self.snake_cambiar_direccion('LEFT')
+            elif key == 'RIGHT': self.snake_cambiar_direccion('RIGHT')
 
     def snake_cambiar_direccion(self, direccion):
         if direccion == 'UP' and self.serpiente_direccion[1] != 1:
@@ -388,7 +428,6 @@ class Juego:
     def mostrar_game_over(self):
         messagebox.showinfo("Juego Terminado", "Puntuacion Final: " + str(self.puntuacion))
         self.cerrar_ventana()
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

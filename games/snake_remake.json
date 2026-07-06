@@ -15,7 +15,7 @@
   "tipo_juego": "SNAKE", 
   "config": {
     "color_grid_fija": "#343434", 
-    "snake_shape": "TRIANGULAR", 
+    "snake_shape": "CIRCULAR", 
     "speed": 0.15, 
     "grid_size": [
       18, 
@@ -28,6 +28,13 @@
         "params": [], 
         "accion": "SET_DIRECTION", 
         "objeto": "DOWN"
+      }
+    ], 
+    "ON_EAT_POISON": [
+      {
+        "params": [], 
+        "accion": "DECREASE_SCORE", 
+        "objeto": "5"
       }
     ], 
     "ON_EAT_FOOD": [
@@ -81,6 +88,13 @@
         "objeto": null
       }
     ], 
+    "ON_EAT_INVINCIBLE": [
+      {
+        "params": [], 
+        "accion": "MAKE_INVINCIBLE", 
+        "objeto": "5"
+      }
+    ], 
     "ON_START": [
       {
         "params": [
@@ -98,6 +112,48 @@
         ], 
         "accion": "SPAWN", 
         "objeto": "FOOD"
+      }, 
+      {
+        "params": [
+          "RANDOM"
+        ], 
+        "accion": "SPAWN", 
+        "objeto": "OBSTACLE"
+      }, 
+      {
+        "params": [
+          "RANDOM"
+        ], 
+        "accion": "SPAWN", 
+        "objeto": "OBSTACLE"
+      }, 
+      {
+        "params": [
+          "RANDOM"
+        ], 
+        "accion": "SPAWN", 
+        "objeto": "OBSTACLE"
+      }, 
+      {
+        "params": [
+          "RANDOM"
+        ], 
+        "accion": "SPAWN", 
+        "objeto": "OBSTACLE"
+      }, 
+      {
+        "params": [
+          "RANDOM"
+        ], 
+        "accion": "SPAWN", 
+        "objeto": "OBSTACLE"
+      }
+    ], 
+    "ON_COLLISION_OBSTACLE": [
+      {
+        "params": [], 
+        "accion": "LOSE_ALL_SCORE", 
+        "objeto": null
       }
     ], 
     "ON_KEY_UP": [

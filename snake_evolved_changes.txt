@@ -1,0 +1,26 @@
+Aquí tienes el informe detallado de las actualizaciones implementadas en el sistema de juego:
+
+Informe de Actualizaciones: Sistema BrickScript
+El objetivo principal de esta actualización fue expandir la jugabilidad del modo SNAKE mediante la integración de nuevos sistemas de riesgo-recompensa y mecánicas de colisión.
+
+1. Nuevas Mecánicas de Juego
+Sistema de Frutas y Veneno: Se implementó una lógica de objetos consumibles con efectos diferenciados. Comer fruta roja aumenta la puntuación, mientras que el contacto con fruta morada (veneno) reduce la puntuación y el contacto con obstáculos elimina el progreso acumulado.
+
+Invencibilidad Temporal: Se añadió un nuevo tipo de objeto (Power-up dorado) que otorga al jugador un estado de invencibilidad durante 10 segundos, permitiéndole atravesar paredes u otros elementos sin finalizar la partida.
+
+Generación Procedural de Obstáculos: El sistema ahora spawnea "nubes" de obstáculos al iniciar, incrementando la dificultad y la necesidad de navegación precisa.
+
+2. Cambios Técnicos y Estructurales
+Compilador (compiler.py): Se actualizó el parser para reconocer nuevos comandos: DECREASE_SCORE, LOSE_ALL_SCORE y MAKE_INVINCIBLE. Además, se corrigió la codificación del archivo (UTF-8) para asegurar la compatibilidad con caracteres especiales.
+
+Runtime (runtime.py):
+
+Se implementó un gestor de coordenadas libres para evitar que los elementos (comida, veneno, obstáculos) se superpongan.
+
+Se añadió la lógica de renderizado para formas geométricas personalizadas (círculos para veneno, triángulos para power-ups).
+
+Se integró un temporizador de juego para manejar los estados de invencibilidad.
+
+Scripting (snake.brick): Se reescribió el script para mapear los nuevos eventos, consolidando la lógica de "Game Over" ante colisiones y las nuevas recompensas al comer.
+
+Gramática (snake.bnf): Se expandió la sintaxis para incluir formalmente todos los nuevos comandos de spawn y estados de juego, garantizando que el compilador pueda validar las nuevas reglas.
