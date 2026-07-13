@@ -89,10 +89,10 @@ class Juego:
         lbl_titulo = tk.Label(self.marco_menu, text="SELECCIONA DIFICULTAD", bg='#222222', fg='white', font=('Consolas', 16, 'bold'))
         lbl_titulo.pack(pady=15)
         
-        btn_facil = tk.Button(self.marco_menu, text="FÁCIL", font=('Consolas', 12, 'bold'), bg='#4CAF50', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("facil"))
+        btn_facil = tk.Button(self.marco_menu, text="BABY", font=('Consolas', 12, 'bold'), bg='#4CAF50', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("facil"))
         btn_facil.pack(pady=8)
         
-        btn_normal = tk.Button(self.marco_menu, text="NORMAL", font=('Consolas', 12, 'bold'), bg='#FF9800', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("normal"))
+        btn_normal = tk.Button(self.marco_menu, text="ENTUSIASTA", font=('Consolas', 12, 'bold'), bg='#FF9800', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("normal"))
         btn_normal.pack(pady=8)
         
         btn_nyan = tk.Button(self.marco_menu, text="NYAN CAT", font=('Consolas', 12, 'bold'), bg='#00E5FF', fg='black', width=15, command=lambda: self.comenzar_con_dificultad("nyan cat"))

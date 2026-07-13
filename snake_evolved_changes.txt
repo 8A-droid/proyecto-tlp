@@ -1,54 +1,64 @@
-Aquí tienes el informe detallado de las actualizaciones implementadas en el sistema de juego:
+El objetivo principal de esta actualización fue expandir la jugabilidad
+del modo SNAKE mediante la integración de nuevos sistemas de 
+riesgo-recompensa y mecánicas de colisión.
 
-Informe de Actualizaciones: Sistema BrickScript
-El objetivo principal de esta actualización fue expandir la jugabilidad del modo SNAKE mediante la integración de nuevos sistemas de riesgo-recompensa y mecánicas de colisión.
+FORMAS SERPIENTE:
+Se creo el bloque define shape para poder cambiar la forma de todos los 
+elemnetos a voluntad, tambien se cambio la gramatica para que esta se reconociera
+ el bloque en todo el sistema.
 
+FRUTAS:
 1. Nuevas Mecánicas de Juego
-Sistema de Frutas y Veneno: Se implementó una lógica de objetos consumibles con efectos diferenciados. Comer fruta roja aumenta la puntuación, mientras que el contacto con fruta morada (veneno) reduce la puntuación y el contacto con obstáculos elimina el progreso acumulado.
+Sistema de Frutas y Veneno: Se implementó una lógica de objetos consumibles 
+con efectos diferenciados. Comer fruta roja aumenta la puntuación, mientras que 
+el contacto con fruta morada (veneno) reduce la puntuación y el contacto con 
+obstáculos elimina el progreso acumulado.
 
-Invencibilidad Temporal: Se añadió un nuevo tipo de objeto (Power-up dorado) que otorga al jugador un estado de invencibilidad durante 10 segundos, permitiéndole atravesar paredes u otros elementos sin finalizar la partida.
+Invencibilidad Temporal: Se añadió un nuevo tipo de objeto (Power-up dorado) que 
+otorga al jugador un estado de invencibilidad durante 10 segundos, permitiéndole chocar 
+contra paredes u otros elementos sin finalizar la partida.
 
-Generación Procedural de Obstáculos: El sistema ahora spawnea "nubes" de obstáculos al iniciar, incrementando la dificultad y la necesidad de navegación precisa.
+Generación Procedural de Obstáculos: El sistema ahora spawnea "nubes" 
+de obstáculos al iniciar, incrementando la dificultad
 
 2. Cambios Técnicos y Estructurales
-Compilador (compiler.py): Se actualizó el parser para reconocer nuevos comandos: DECREASE_SCORE, LOSE_ALL_SCORE y MAKE_INVINCIBLE. Además, se corrigió la codificación del archivo (UTF-8) para asegurar la compatibilidad con caracteres especiales.
+Compilador (compiler.py): Se actualizó el parser para reconocer nuevos 
+comandos: DECREASE_SCORE, LOSE_ALL_SCORE y MAKE_INVINCIBLE. Además, se corrigió 
+la codificación del archivo (UTF-8) para asegurar la compatibilidad con caracteres especiales.
 
-Runtime (runtime.py):
+Se implementó un gestor de coordenadas libres para evitar que los elementos 
+(comida, veneno, obstáculos) se superpongan.
 
-Se implementó un gestor de coordenadas libres para evitar que los elementos (comida, veneno, obstáculos) se superpongan.
-
-Se añadió la lógica de renderizado para formas geométricas personalizadas (círculos para veneno, triángulos para power-ups).
+Se añadió la lógica de renderizado para formas geométricas personalizadas
+(círculos para veneno, triángulos para power-ups).
 
 Se integró un temporizador de juego para manejar los estados de invencibilidad.
 
-Scripting (snake.brick): Se reescribió el script para mapear los nuevos eventos, consolidando la lógica de "Game Over" ante colisiones y las nuevas recompensas al comer.
+Se reescribió el script para mapear los nuevos eventos, consolidando la lógica 
+de "Game Over" ante colisiones y las nuevas recompensas al comer acorde a la fruta.
 
-Gramática (snake.bnf): Se expandió la sintaxis para incluir formalmente todos los nuevos comandos de spawn y estados de juego, garantizando que el compilador pueda validar las nuevas reglas.
+Gramática (snake.bnf): Se expandió la sintaxis para incluir formalmente todos los nuevos 
+comandos de spawn y estados de juego, garantizando que el compilador pueda validar las nuevas reglas.
 
-=======================================================================
-           NOTAS DE CAMBIOS - MOTOR DE JUEGO BRICKSCRIPT
-=======================================================================
+NIVELES:
+1. CONFIGURACIÓN CENTRALIZADA
+   - Se creo un diccionario inicial llamado 'CONFIG_DIFICULTADES'.
+    Centraliza las reglas de cada nivel. Ahí controlamos
+    si nacen venenos u obstáculos, la probabilidad de aparición y la 
+    velocidad.
 
-¿QUÉ HICIMOS Y CÓMO FUNCIONA LA LÓGICA?
-
-1. CONFIGURACIÓN CENTRALIZADA (Niveles a tu gusto)
-   - Qué es: Creamos un diccionario inicial llamado 'CONFIG_DIFICULTADES'.
-   - Cómo funciona: Centraliza las reglas de cada nivel. Ahí controlamos
-     si nacen venenos u obstáculos, la probabilidad de aparición y la 
-     velocidad. Si quieres cambiar la dificultad, solo editas ese bloque.
-
-2. MENÚ DE INICIO DE DIFICULTAD INTEGRADO (Solo para Snake)
-   - Qué es: Una interfaz previa con tres botones (Fácil, Normal, Nyan Cat).
-   - Cómo funciona: Al arrancar, el código revisa si el juego es 'SNAKE'.
+2. MENÚ DE INICIO DE DIFICULTAD INTEGRADO (Solo para Snake.remake)
+   - Una interfaz previa con tres botones (Fácil, Normal, Nyan Cat).
+   - Cómo funciona: Al arrancar, el código revisa si el juego es 'SNAKE_REMAKE'.
      Si lo es, frena el tablero y dibuja los botones en la ventana. Al 
-     pulsar uno, guarda tu elección, destruye el menú y arranca el mapa.
+     pulsar uno, guarda la elección, destruye el menú y arranca el mapa.
    - Tetris intacto: Si el juego detecta que es 'TETRIS', se salta el menú
      por completo, evita el error de intentar destruir un menú inexistente
      mediante una validación inteligente, y arranca directo a su velocidad 
-     tradicional.
+     tradicional, esto para garantizar la retrocompatibilidad en el futuro
 
 3. ASPECTO PERSONALIZADO DE NYAN CAT
-   - Qué es: Rediseño visual exclusivo para el nivel máximo de la serpiente.
+   - Rediseño visual exclusivo para el nivel NYAN CAT de la serpiente.
    - Cómo funciona: En la función encargada de pintar los gráficos:
      * El cuerpo hace un ciclo matemático que repite continuamente los 6
        colores clásicos del arcoíris celda por celda.
@@ -57,15 +67,14 @@ Gramática (snake.bnf): Se expandió la sintaxis para incluir formalmente todos 
        simular la cara del gato.
 
 4. MECÁNICA DE SEGUNDA OPORTUNIDAD (Sistema de Choques en Nyan Cat)
-   - Qué es: Un salvavidas arcade que te quita los puntos en vez de matarte.
+   - Es un salvavidas arcade que te quita los puntos en vez de matarte.
    - Cómo funciona: Modificamos la función que detecta impactos. Cuando la
      serpiente choca contra algo en modo Nyan Cat:
-     * Si tienes puntos: El juego resetea el marcador a 0 y te otorga
+     * Si tienes puntos: El juego resetea el marcador a 0 y otorga
        1.5 segundos de "tiempo de gracia" (invencibilidad invisible) y 
-       congela el avance de la serpiente en ese tick. Esto te da un respiro
-       real para cambiar de dirección con las flechas sin morir de inmediato.
-     * Si no tienes puntos: Te da el Game Over definitivo.
+       congela el avance de la serpiente en ese tick. Esto permitiendo
+       cambiar de dirección con las flechas sin morir de inmediato.
+     * Si no tiene puntos: Te da el Game Over definitivo.
    - Limpieza de poder: Como en este nivel no hay estrellas, quitamos los
      parpadeos blancos de la invencibilidad para que el arcoíris y la cara
      del gato se mantengan perfectos todo el tiempo.
-=======================================================================
