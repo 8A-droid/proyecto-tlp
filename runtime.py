@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# runtime.py - Version corregida para Python 2.7 con Tkinter y Menú Integrado
+# runtime.py - Corregido: Filtros estrictos para separar SNAKE de SNAKE_REMAKE
 
 import sys
 import json
@@ -14,21 +14,21 @@ CONFIG_DIFICULTADES = {
         "permitir_obstaculos": False,
         "permitir_powerup": False,
         "probabilidad_veneno_por_comida": 0.0,
-        "velocidad": 0.16                 
+        "velocidad": 0.16 
     },
     "normal": {
         "permitir_veneno": True,
         "permitir_obstaculos": True,
         "permitir_powerup": True,
         "probabilidad_veneno_por_comida": 0.3,
-        "velocidad": 0.15                  
+        "velocidad": 0.15 
     },
     "nyan cat": {
         "permitir_veneno": True,
         "permitir_obstaculos": True,
         "permitir_powerup": False,
         "probabilidad_veneno_por_comida": 0.6,
-        "velocidad": 0.08                  
+        "velocidad": 0.08 
     }
 }
 
@@ -77,20 +77,18 @@ class Juego:
         self.root.title("BrickScript - " + self.tipo_juego)
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_ventana)
         
-        if self.tipo_juego == 'SNAKE':
+        if self.tipo_juego == 'SNAKE_REMAKE':
             self.mostrar_menu_dificultad()
         else:
             self.comenzar_con_dificultad("normal")
 
     def mostrar_menu_dificultad(self):
-        # Contenedor del menú para poder destruirlo fácilmente después
         self.marco_menu = tk.Frame(self.root, bg='#222222', padx=50, pady=40)
         self.marco_menu.pack(fill=tk.BOTH, expand=True)
         
         lbl_titulo = tk.Label(self.marco_menu, text="SELECCIONA DIFICULTAD", bg='#222222', fg='white', font=('Consolas', 16, 'bold'))
         lbl_titulo.pack(pady=15)
         
-        # Botones para cada dificultad
         btn_facil = tk.Button(self.marco_menu, text="FÁCIL", font=('Consolas', 12, 'bold'), bg='#4CAF50', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("facil"))
         btn_facil.pack(pady=8)
         
@@ -106,7 +104,6 @@ class Juego:
         if hasattr(self, 'marco_menu') and self.marco_menu:
             self.marco_menu.destroy()
         
-        # Construimos la interfaz del juego real
         self.taman_celda = 25
         self.ancho_canvas = self.ancho * self.taman_celda
         self.alto_canvas = self.alto * self.taman_celda
@@ -120,7 +117,6 @@ class Juego:
         self.label_score = tk.Label(self.marco_score, text="PUNTUACION\n0", bg='#222222', fg='white', font=('Consolas', 16, 'bold'))
         self.label_score.pack(pady=40, padx=10)
         
-        # Pequeño indicador de dificultad en la barra lateral
         self.label_dif = tk.Label(self.marco_score, text="MODO: " + self.dificultad.upper(), bg='#222222', fg='#FFD700', font=('Consolas', 9, 'bold'))
         self.label_dif.pack(pady=5)
         
@@ -129,10 +125,8 @@ class Juego:
         
         self.root.bind('<Key>', self.manejar_input_gui)
         
-        # Ajustes de velocidad inicial según el juego
         config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
-        
-        velocidad_por_defecto = 0.15 if self.tipo_juego == 'SNAKE' else 0.4
+        velocidad_por_defecto = 0.15 if self.tipo_juego in ['SNAKE', 'SNAKE_REMAKE'] else 0.4
         self.velocidad_gravedad = config_actual.get('velocidad', velocidad_por_defecto)
             
         self.ejecutar_evento('ON_START')
@@ -146,7 +140,7 @@ class Juego:
             self.mostrar_game_over()
             return
 
-        if self.tipo_juego == 'SNAKE' and self.invencible_activo:
+        if self.tipo_juego in ['SNAKE', 'SNAKE_REMAKE'] and self.invencible_activo:
             if time.time() > self.invencible_hasta:
                 self.invencible_activo = False
 
@@ -175,15 +169,17 @@ class Juego:
                     if celda == 1:
                         self.dibujar_celda(self.pieza_x + x_offset, self.pieza_y + y_offset, color_pieza)
         
-        if self.tipo_juego == 'SNAKE':
-            for obs in self.posiciones_obstaculos:
-                self.dibujar_celda(obs[0], obs[1], '#666666', shape='SQUARE')
-                
-            for veneno in self.posiciones_veneno:
-                self.dibujar_celda(veneno[0], veneno[1], '#800080', shape='CIRCULAR')
-                
-            if self.posicion_powerup:
-                self.dibujar_celda(self.posicion_powerup[0], self.posicion_powerup[1], '#FFD700', shape='TRIANGULAR')
+        if self.tipo_juego in ['SNAKE', 'SNAKE_REMAKE']:
+            # Solo dibujar elementos avanzados si estamos en el Remake
+            if self.tipo_juego == 'SNAKE_REMAKE':
+                for obs in self.posiciones_obstaculos:
+                    self.dibujar_celda(obs[0], obs[1], '#666666', shape='SQUARE')
+                    
+                for veneno in self.posiciones_veneno:
+                    self.dibujar_celda(veneno[0], veneno[1], '#800080', shape='CIRCULAR')
+                    
+                if self.posicion_powerup:
+                    self.dibujar_celda(self.posicion_powerup[0], self.posicion_powerup[1], '#FFD700', shape='TRIANGULAR')
 
             if self.posicion_comida:
                 x, y = self.posicion_comida
@@ -197,28 +193,21 @@ class Juego:
                 x1, y1 = x * ts, y * ts
                 x2, y2 = x1 + ts, y1 + ts
                 
-                if i == 0:  # 🐱 ¿Es la cabeza?
-                    if self.dificultad == "nyan cat":
+                if i == 0:  # Cabeza
+                    if self.tipo_juego == 'SNAKE_REMAKE' and self.dificultad == "nyan cat":
                         color_gato = '#ACA8A1'
                         color_texto = '#000000'
-                        
                         self.canvas.create_oval(x1, y1, x2, y2, fill=color_gato, outline='#000000')
-                        
-                        # Orejitas
                         self.canvas.create_polygon(x1 + (ts*0.05), y1 + (ts*0.1), x1 + (ts*0.35), y1 + (ts*0.05), x1 + (ts*0.15), y1 - (ts*0.22), fill=color_gato, outline='#000000')
                         self.canvas.create_polygon(x2 - (ts*0.35), y1 + (ts*0.05), x2 - (ts*0.05), y1 + (ts*0.1), x2 - (ts*0.15), y1 - (ts*0.22), fill=color_gato, outline='#000000')
-                        
-                        # Rostro (:ω)
                         centro_x = (x1 + x2) / 2.0
                         centro_y = (y1 + y2) / 2.0
                         self.canvas.create_text(centro_x, centro_y, text=":\xcf\x89", fill=color_texto, font=('Consolas', int(ts*0.48), 'bold'))
                     else:
-                        # Cabeza normal en Fácil/Normal (Blanca si es invencible, Verde si no)
                         color = '#FFFFFF' if self.invencible_activo else '#00FF00'
                         self.dibujar_celda(x, y, color, shape=self.snake_shape)
-                        
                 else: 
-                    if self.dificultad == "nyan cat":
+                    if self.tipo_juego == 'SNAKE_REMAKE' and self.dificultad == "nyan cat":
                         color_ciclo = colores_arcoiris[(i - 1) % len(colores_arcoiris)]
                         self.dibujar_celda(x, y, color_ciclo, shape='SQUARE')
                     else:
@@ -279,7 +268,7 @@ class Juego:
                 elif verbo == 'ROTATE':
                     self.tetris_rotar_pieza()
             
-            elif self.tipo_juego == 'SNAKE':
+            elif self.tipo_juego in ['SNAKE', 'SNAKE_REMAKE']:
                 if verbo == 'SPAWN':
                     if objeto == 'PLAYER':
                         self.snake_spawn_jugador(params)
@@ -288,7 +277,6 @@ class Juego:
                 elif verbo == 'MOVE' and objeto == 'PLAYER':
                     self.snake_mover_jugador()
 
-    # --- Funciones Tetris Omitidas del todo para ahorrar espacio y mantenerlas identicas ---
     def tetris_spawn_pieza(self, nombre_pieza=None):
         if self.forzar_bloque_1x1:
             self.nombre_pieza_actual = 'BLOQUE_BONUS'
@@ -385,7 +373,6 @@ class Juego:
                 self.ejecutar_evento('ON_TRIPLE_LINE_CLEAR')
                 self.forzar_bloque_1x1 = True
 
-    # --- Funciones Extendidas Snake ---
     def snake_spawn_jugador(self, params):
         coords = params[0] if params else [self.ancho / 2, self.alto / 2]
         self.serpiente_cuerpo = [(int(coords[0]), int(coords[1]))]
@@ -404,6 +391,10 @@ class Juego:
         return None
 
     def snake_spawn_element(self, tipo):
+        # Si es el Snake clasico, ignorar de manera estricta venenos, obstaculos y powerups
+        if self.tipo_juego == 'SNAKE' and tipo != 'FOOD':
+            return
+
         pos = self.obtener_posicion_libre()
         if not pos: return
         
@@ -425,23 +416,22 @@ class Juego:
         dir_x, dir_y = self.serpiente_direccion
         nueva_cabeza = (cabeza_x + dir_x, cabeza_y + dir_y)
         
-        # 🔑 DETECTAR COLISIONES
-        colision_detectada = False
+        colicion_detectada = False
         tipo_colision = None
         
         if not (0 <= nueva_cabeza[0] < self.ancho and 0 <= nueva_cabeza[1] < self.alto):
-            colision_detectada = True
+            colicion_detectada = True
             tipo_colision = 'ON_COLLISION_WALL'
             
         elif nueva_cabeza in self.serpiente_cuerpo[:-1]:
-            colision_detectada = True
+            colicion_detectada = True
             tipo_colision = 'ON_COLLISION_SELF'
             
-        elif nueva_cabeza in self.posiciones_obstaculos:
-            colision_detectada = True
+        elif self.tipo_juego == 'SNAKE_REMAKE' and nueva_cabeza in self.posiciones_obstaculos:
+            colicion_detectada = True
             tipo_colision = 'ON_COLLISION_OBSTACLE'
 
-        if colision_detectada and self.dificultad == "nyan cat":
+        if colicion_detectada and self.tipo_juego == 'SNAKE_REMAKE' and self.dificultad == "nyan cat":
             if self.invencible_activo:
                 return 
                 
@@ -454,7 +444,7 @@ class Juego:
                 self.juego_terminado = True
                 return
             
-        if colision_detectada:
+        if colicion_detectada:
             if self.invencible_activo: return
             self.ejecutar_evento(tipo_colision)
             return
@@ -464,21 +454,23 @@ class Juego:
         if nueva_cabeza == self.posicion_comida:
             self.ejecutar_evento('ON_EAT_FOOD')
             
-            config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
-            prob_veneno = config_actual.get('probabilidad_veneno_por_comida', 0.4)
-            
-            if random.random() < prob_veneno: 
-                self.snake_spawn_element('POISON')
+            # Solo meter veneno o powerups de forma aleatoria si es el Remake
+            if self.tipo_juego == 'SNAKE_REMAKE':
+                config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
+                prob_veneno = config_actual.get('probabilidad_veneno_por_comida', 0.4)
                 
-            if not self.posicion_powerup and random.random() < 0.2:
-                self.snake_spawn_element('POWERUP_INVINCIBLE')
+                if random.random() < prob_veneno: 
+                    self.snake_spawn_element('POISON')
+                    
+                if not self.posicion_powerup and random.random() < 0.2:
+                    self.snake_spawn_element('POWERUP_INVINCIBLE')
                 
-        elif nueva_cabeza in self.posiciones_veneno:
+        elif self.tipo_juego == 'SNAKE_REMAKE' and nueva_cabeza in self.posiciones_veneno:
             self.posiciones_veneno.remove(nueva_cabeza)
             if not self.invencible_activo:
                 self.ejecutar_evento('ON_EAT_POISON')
                 
-        elif nueva_cabeza == self.posicion_powerup:
+        elif self.tipo_juego == 'SNAKE_REMAKE' and nueva_cabeza == self.posicion_powerup:
             self.posicion_powerup = None
             self.ejecutar_evento('ON_EAT_INVINCIBLE')
         
@@ -495,7 +487,7 @@ class Juego:
             elif key == 'LEFT': self.ejecutar_evento('ON_KEY_LEFT')
             elif key == 'RIGHT': self.ejecutar_evento('ON_KEY_RIGHT')
         
-        elif self.tipo_juego == 'SNAKE':
+        elif self.tipo_juego in ['SNAKE', 'SNAKE_REMAKE']:
             if key == 'UP': self.snake_cambiar_direccion('UP')
             elif key == 'DOWN': self.snake_cambiar_direccion('DOWN')
             elif key == 'LEFT': self.snake_cambiar_direccion('LEFT')
@@ -535,4 +527,4 @@ if __name__ == "__main__":
         sys.exit(1)
     
     juego = Juego(datos_juego)
-    juego.root.mainloop() # Movemos el mainloop al script principal para soportar el menú previo
+    juego.root.mainloop()

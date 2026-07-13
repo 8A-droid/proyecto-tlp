@@ -1,5 +1,5 @@
 # snake_remake.brick
-GAME_TYPE SNAKE
+GAME_TYPE SNAKE_REMAKE
 
 GAME_GRID (18, 18)
 

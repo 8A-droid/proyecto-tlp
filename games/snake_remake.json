@@ -12,7 +12,7 @@
       "chance": 1
     }
   }, 
-  "tipo_juego": "SNAKE", 
+  "tipo_juego": "SNAKE_REMAKE", 
   "config": {
     "color_grid_fija": "#343434", 
     "snake_shape": "CIRCULAR", 
