@@ -24,3 +24,48 @@ Se integró un temporizador de juego para manejar los estados de invencibilidad.
 Scripting (snake.brick): Se reescribió el script para mapear los nuevos eventos, consolidando la lógica de "Game Over" ante colisiones y las nuevas recompensas al comer.
 
 Gramática (snake.bnf): Se expandió la sintaxis para incluir formalmente todos los nuevos comandos de spawn y estados de juego, garantizando que el compilador pueda validar las nuevas reglas.
+
+=======================================================================
+           NOTAS DE CAMBIOS - MOTOR DE JUEGO BRICKSCRIPT
+=======================================================================
+
+¿QUÉ HICIMOS Y CÓMO FUNCIONA LA LÓGICA?
+
+1. CONFIGURACIÓN CENTRALIZADA (Niveles a tu gusto)
+   - Qué es: Creamos un diccionario inicial llamado 'CONFIG_DIFICULTADES'.
+   - Cómo funciona: Centraliza las reglas de cada nivel. Ahí controlamos
+     si nacen venenos u obstáculos, la probabilidad de aparición y la 
+     velocidad. Si quieres cambiar la dificultad, solo editas ese bloque.
+
+2. MENÚ DE INICIO DE DIFICULTAD INTEGRADO (Solo para Snake)
+   - Qué es: Una interfaz previa con tres botones (Fácil, Normal, Nyan Cat).
+   - Cómo funciona: Al arrancar, el código revisa si el juego es 'SNAKE'.
+     Si lo es, frena el tablero y dibuja los botones en la ventana. Al 
+     pulsar uno, guarda tu elección, destruye el menú y arranca el mapa.
+   - Tetris intacto: Si el juego detecta que es 'TETRIS', se salta el menú
+     por completo, evita el error de intentar destruir un menú inexistente
+     mediante una validación inteligente, y arranca directo a su velocidad 
+     tradicional.
+
+3. ASPECTO PERSONALIZADO DE NYAN CAT
+   - Qué es: Rediseño visual exclusivo para el nivel máximo de la serpiente.
+   - Cómo funciona: En la función encargada de pintar los gráficos:
+     * El cuerpo hace un ciclo matemático que repite continuamente los 6
+       colores clásicos del arcoíris celda por celda.
+     * La cabeza reemplaza el cuadrado verde por un círculo gris con
+       orejas triangulares añadidas y el texto ":ω" superpuesto para
+       simular la cara del gato.
+
+4. MECÁNICA DE SEGUNDA OPORTUNIDAD (Sistema de Choques en Nyan Cat)
+   - Qué es: Un salvavidas arcade que te quita los puntos en vez de matarte.
+   - Cómo funciona: Modificamos la función que detecta impactos. Cuando la
+     serpiente choca contra algo en modo Nyan Cat:
+     * Si tienes puntos: El juego resetea el marcador a 0 y te otorga
+       1.5 segundos de "tiempo de gracia" (invencibilidad invisible) y 
+       congela el avance de la serpiente en ese tick. Esto te da un respiro
+       real para cambiar de dirección con las flechas sin morir de inmediato.
+     * Si no tienes puntos: Te da el Game Over definitivo.
+   - Limpieza de poder: Como en este nivel no hay estrellas, quitamos los
+     parpadeos blancos de la invencibilidad para que el arcoíris y la cara
+     del gato se mantengan perfectos todo el tiempo.
+=======================================================================

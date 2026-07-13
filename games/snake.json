@@ -15,6 +15,7 @@
   "tipo_juego": "SNAKE", 
   "config": {
     "color_grid_fija": "#343434", 
+    "snake_shape": "SQUARE", 
     "speed": 0.15, 
     "grid_size": [
       18, 

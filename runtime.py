@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# runtime.py - Version corregida para Python 2.7 con Tkinter
+# runtime.py - Version corregida para Python 2.7 con Tkinter y Menú Integrado
 
 import sys
 import json
@@ -7,6 +7,30 @@ import time
 import random
 import Tkinter as tk
 import tkMessageBox as messagebox
+
+CONFIG_DIFICULTADES = {
+    "facil": {
+        "permitir_veneno": False,
+        "permitir_obstaculos": False,
+        "permitir_powerup": False,
+        "probabilidad_veneno_por_comida": 0.0,
+        "velocidad": 0.16                 
+    },
+    "normal": {
+        "permitir_veneno": True,
+        "permitir_obstaculos": True,
+        "permitir_powerup": True,
+        "probabilidad_veneno_por_comida": 0.3,
+        "velocidad": 0.15                  
+    },
+    "nyan cat": {
+        "permitir_veneno": True,
+        "permitir_obstaculos": True,
+        "permitir_powerup": False,
+        "probabilidad_veneno_por_comida": 0.6,
+        "velocidad": 0.08                  
+    }
+}
 
 class Juego:
     def __init__(self, datos_juego):
@@ -22,16 +46,67 @@ class Juego:
         self.juego_terminado = False
         self.forzar_bloque_1x1 = False
         
+        self.dificultad = "facil"
+        
         # Configuracion
         config_speed = config.get('speed', 0.4)
         self.speed_multiplier = config.get('speed', 1.0)
         self.snake_shape = config.get('snake_shape', 'SQUARE')
         
-        # GUI
+        # Variables de juego vacías al inicio
+        self.pieza_actual = None
+        self.nombre_pieza_actual = None
+        self.pieza_x, self.pieza_y, self.pieza_rotacion = 0, 0, 0
+        self.velocidad_gravedad = 0.4
+        
+        self.serpiente_cuerpo = []
+        self.serpiente_direccion = (1, 0)
+        self.posicion_comida = None
+        self.creciendo = 0
+        self.posiciones_veneno = []
+        self.posiciones_obstaculos = []
+        self.posicion_powerup = None
+        self.invencible_activo = False
+        self.invencible_hasta = 0
+        
+        self.timer_gravedad = 0
+        self.timer_id = None
+        
+        # GUI Principal
         self.root = tk.Tk()
         self.root.title("BrickScript - " + self.tipo_juego)
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_ventana)
         
+        if self.tipo_juego == 'SNAKE':
+            self.mostrar_menu_dificultad()
+        else:
+            self.comenzar_con_dificultad("normal")
+
+    def mostrar_menu_dificultad(self):
+        # Contenedor del menú para poder destruirlo fácilmente después
+        self.marco_menu = tk.Frame(self.root, bg='#222222', padx=50, pady=40)
+        self.marco_menu.pack(fill=tk.BOTH, expand=True)
+        
+        lbl_titulo = tk.Label(self.marco_menu, text="SELECCIONA DIFICULTAD", bg='#222222', fg='white', font=('Consolas', 16, 'bold'))
+        lbl_titulo.pack(pady=15)
+        
+        # Botones para cada dificultad
+        btn_facil = tk.Button(self.marco_menu, text="FÁCIL", font=('Consolas', 12, 'bold'), bg='#4CAF50', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("facil"))
+        btn_facil.pack(pady=8)
+        
+        btn_normal = tk.Button(self.marco_menu, text="NORMAL", font=('Consolas', 12, 'bold'), bg='#FF9800', fg='white', width=15, command=lambda: self.comenzar_con_dificultad("normal"))
+        btn_normal.pack(pady=8)
+        
+        btn_nyan = tk.Button(self.marco_menu, text="NYAN CAT", font=('Consolas', 12, 'bold'), bg='#00E5FF', fg='black', width=15, command=lambda: self.comenzar_con_dificultad("nyan cat"))
+        btn_nyan.pack(pady=8)
+
+    def comenzar_con_dificultad(self, dificultad_elegida):
+        self.dificultad = dificultad_elegida
+        
+        if hasattr(self, 'marco_menu') and self.marco_menu:
+            self.marco_menu.destroy()
+        
+        # Construimos la interfaz del juego real
         self.taman_celda = 25
         self.ancho_canvas = self.ancho * self.taman_celda
         self.alto_canvas = self.alto * self.taman_celda
@@ -45,49 +120,32 @@ class Juego:
         self.label_score = tk.Label(self.marco_score, text="PUNTUACION\n0", bg='#222222', fg='white', font=('Consolas', 16, 'bold'))
         self.label_score.pack(pady=40, padx=10)
         
+        # Pequeño indicador de dificultad en la barra lateral
+        self.label_dif = tk.Label(self.marco_score, text="MODO: " + self.dificultad.upper(), bg='#222222', fg='#FFD700', font=('Consolas', 9, 'bold'))
+        self.label_dif.pack(pady=5)
+        
         self.label_controles = tk.Label(self.marco_score, text="CONTROLES\nFlechas: Mover/Rotar", bg='#222222', fg='gray', font=('Consolas', 10))
         self.label_controles.pack(pady=20, padx=10)
         
         self.root.bind('<Key>', self.manejar_input_gui)
         
-        # Variables de juego
-        if self.tipo_juego == 'TETRIS':
-            self.pieza_actual = None
-            self.nombre_pieza_actual = None
-            self.pieza_x, self.pieza_y, self.pieza_rotacion = 0, 0, 0
-            self.velocidad_gravedad = 0.4
+        # Ajustes de velocidad inicial según el juego
+        config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
         
-        if self.tipo_juego == 'SNAKE':
-            self.serpiente_cuerpo = []
-            self.serpiente_direccion = (1, 0)
-            self.posicion_comida = None
-            self.creciendo = 0
+        velocidad_por_defecto = 0.15 if self.tipo_juego == 'SNAKE' else 0.4
+        self.velocidad_gravedad = config_actual.get('velocidad', velocidad_por_defecto)
             
-            # Nuevas variables Sistema de Frutas y Obstaculos
-            self.posiciones_veneno = []
-            self.posiciones_obstaculos = []
-            self.posicion_powerup = None
-            self.invencible_activo = False
-            self.invencible_hasta = 0
-            
-            self.velocidad_gravedad = 0.15
-        
-        self.timer_gravedad = 0
-        self.timer_id = None
-        
-        # Iniciar el juego
         self.ejecutar_evento('ON_START')
+        self.run()
 
     def run(self):
         self.root.after(50, self.game_loop)
-        self.root.mainloop()
 
     def game_loop(self):
         if self.juego_terminado:
             self.mostrar_game_over()
             return
 
-        # Manejo de invencibilidad temporal
         if self.tipo_juego == 'SNAKE' and self.invencible_activo:
             if time.time() > self.invencible_hasta:
                 self.invencible_activo = False
@@ -103,14 +161,12 @@ class Juego:
     def dibujar(self):
         self.canvas.delete("all")
         
-        # Dibujar grid fijo
         for y in range(self.alto):
             for x in range(self.ancho):
                 if self.grid[y][x] > 0:
                     color = self.grid_color[y][x] if self.grid_color[y][x] else '#CCCCCC'
                     self.dibujar_celda(x, y, color)
         
-        # Dibujar pieza actual (Tetris)
         if self.tipo_juego == 'TETRIS' and self.pieza_actual:
             color_pieza = self.shapes.get(self.nombre_pieza_actual, {}).get('color', '#00FFFF')
             matriz_pieza = self.pieza_actual[self.pieza_rotacion]
@@ -119,35 +175,56 @@ class Juego:
                     if celda == 1:
                         self.dibujar_celda(self.pieza_x + x_offset, self.pieza_y + y_offset, color_pieza)
         
-        # Dibujar Snake y Elementos
         if self.tipo_juego == 'SNAKE':
-            # Nubes Obstaculos (Gris oscuro)
             for obs in self.posiciones_obstaculos:
                 self.dibujar_celda(obs[0], obs[1], '#666666', shape='SQUARE')
                 
-            # Frutas Venenosas (Morado)
             for veneno in self.posiciones_veneno:
                 self.dibujar_celda(veneno[0], veneno[1], '#800080', shape='CIRCULAR')
                 
-            # Power up Invencible (Dorado)
             if self.posicion_powerup:
                 self.dibujar_celda(self.posicion_powerup[0], self.posicion_powerup[1], '#FFD700', shape='TRIANGULAR')
 
-            # Fruta Normal
             if self.posicion_comida:
                 x, y = self.posicion_comida
                 self.dibujar_celda(x, y, '#FF0000', shape='SQUARE')
                 
-            # Dibujar Serpiente
+            colores_arcoiris = ['#FF0000', '#FF9900', '#FFFF00', '#33CC33', '#0099FF', '#6633FF']
+            
             for i, segmento in enumerate(self.serpiente_cuerpo):
                 x, y = segmento
-                if self.invencible_activo:
-                    color = '#FFFFFF' # Blanco puro si es invencible
-                else:
-                    color = '#00FF00' if i == 0 else '#33CC33'
-                self.dibujar_celda(x, y, color, shape=self.snake_shape)
+                ts = self.taman_celda
+                x1, y1 = x * ts, y * ts
+                x2, y2 = x1 + ts, y1 + ts
+                
+                if i == 0:  # 🐱 ¿Es la cabeza?
+                    if self.dificultad == "nyan cat":
+                        color_gato = '#ACA8A1'
+                        color_texto = '#000000'
+                        
+                        self.canvas.create_oval(x1, y1, x2, y2, fill=color_gato, outline='#000000')
+                        
+                        # Orejitas
+                        self.canvas.create_polygon(x1 + (ts*0.05), y1 + (ts*0.1), x1 + (ts*0.35), y1 + (ts*0.05), x1 + (ts*0.15), y1 - (ts*0.22), fill=color_gato, outline='#000000')
+                        self.canvas.create_polygon(x2 - (ts*0.35), y1 + (ts*0.05), x2 - (ts*0.05), y1 + (ts*0.1), x2 - (ts*0.15), y1 - (ts*0.22), fill=color_gato, outline='#000000')
+                        
+                        # Rostro (:ω)
+                        centro_x = (x1 + x2) / 2.0
+                        centro_y = (y1 + y2) / 2.0
+                        self.canvas.create_text(centro_x, centro_y, text=":\xcf\x89", fill=color_texto, font=('Consolas', int(ts*0.48), 'bold'))
+                    else:
+                        # Cabeza normal en Fácil/Normal (Blanca si es invencible, Verde si no)
+                        color = '#FFFFFF' if self.invencible_activo else '#00FF00'
+                        self.dibujar_celda(x, y, color, shape=self.snake_shape)
+                        
+                else: 
+                    if self.dificultad == "nyan cat":
+                        color_ciclo = colores_arcoiris[(i - 1) % len(colores_arcoiris)]
+                        self.dibujar_celda(x, y, color_ciclo, shape='SQUARE')
+                    else:
+                        color = '#FFFFFF' if self.invencible_activo else '#33CC33'
+                        self.dibujar_celda(x, y, color, shape=self.snake_shape)
         
-        # Actualizar puntuacion
         self.label_score.config(text="PUNTUACION\n" + str(self.puntuacion))
 
     def dibujar_celda(self, x, y, color, shape='SQUARE'):
@@ -172,7 +249,6 @@ class Juego:
             objeto = accion.get('objeto')
             params = accion.get('params', [])
             
-            # Acciones Puntuacion
             if verbo == 'INCREASE_SCORE':
                 self.puntuacion += int(objeto)
             elif verbo == 'DECREASE_SCORE':
@@ -183,8 +259,6 @@ class Juego:
             elif verbo == 'LOSE_ALL_SCORE':
                 self.puntuacion = 0
                 self.juego_terminado = True
-            
-            # Acciones Estado de Partida
             elif verbo == 'GAME_OVER':
                 self.juego_terminado = True
             elif verbo == 'MAKE_INVINCIBLE':
@@ -193,7 +267,6 @@ class Juego:
             elif verbo == 'GROW':
                 self.creciendo += int(params[0]) if params else 1
             
-            # Acciones especificas por juego
             if self.tipo_juego == 'TETRIS':
                 if verbo == 'SPAWN':
                     if objeto == 'PIECE' or objeto == 'RANDOM_SHAPE':
@@ -215,7 +288,7 @@ class Juego:
                 elif verbo == 'MOVE' and objeto == 'PLAYER':
                     self.snake_mover_jugador()
 
-    # --- Funciones Tetris Omitidas (Quedan idénticas a tu original) ---
+    # --- Funciones Tetris Omitidas del todo para ahorrar espacio y mantenerlas identicas ---
     def tetris_spawn_pieza(self, nombre_pieza=None):
         if self.forzar_bloque_1x1:
             self.nombre_pieza_actual = 'BLOQUE_BONUS'
@@ -319,7 +392,6 @@ class Juego:
         self.serpiente_direccion = (1, 0)
 
     def obtener_posicion_libre(self):
-        # Aseguramos que la comida nunca caiga encima de nada existente
         ocupadas = set(self.serpiente_cuerpo)
         if self.posicion_comida: ocupadas.add(self.posicion_comida)
         if self.posicion_powerup: ocupadas.add(self.posicion_powerup)
@@ -335,13 +407,15 @@ class Juego:
         pos = self.obtener_posicion_libre()
         if not pos: return
         
+        config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
+        
         if tipo == 'FOOD':
             self.posicion_comida = pos
-        elif tipo == 'POISON':
+        elif tipo == 'POISON' and config_actual.get('permitir_veneno', True):
             self.posiciones_veneno.append(pos)
-        elif tipo == 'OBSTACLE':
+        elif tipo == 'OBSTACLE' and config_actual.get('permitir_obstaculos', True):
             self.posiciones_obstaculos.append(pos)
-        elif tipo == 'POWERUP_INVINCIBLE':
+        elif tipo == 'POWERUP_INVINCIBLE' and config_actual.get('permitir_powerup', True):
             self.posicion_powerup = pos
 
     def snake_mover_jugador(self):
@@ -351,32 +425,51 @@ class Juego:
         dir_x, dir_y = self.serpiente_direccion
         nueva_cabeza = (cabeza_x + dir_x, cabeza_y + dir_y)
         
-        # Colisiones que detienen el movimiento
+        # 🔑 DETECTAR COLISIONES
+        colision_detectada = False
+        tipo_colision = None
+        
         if not (0 <= nueva_cabeza[0] < self.ancho and 0 <= nueva_cabeza[1] < self.alto):
-            if self.invencible_activo: return # Se queda quieta
-            self.ejecutar_evento('ON_COLLISION_WALL')
-            return
+            colision_detectada = True
+            tipo_colision = 'ON_COLLISION_WALL'
             
-        if nueva_cabeza in self.serpiente_cuerpo[:-1]:
-            if self.invencible_activo: return # Se queda quieta
-            self.ejecutar_evento('ON_COLLISION_SELF')
-            return
+        elif nueva_cabeza in self.serpiente_cuerpo[:-1]:
+            colision_detectada = True
+            tipo_colision = 'ON_COLLISION_SELF'
             
-        if nueva_cabeza in self.posiciones_obstaculos:
-            if self.invencible_activo: return # Se queda quieta
-            self.ejecutar_evento('ON_COLLISION_OBSTACLE')
+        elif nueva_cabeza in self.posiciones_obstaculos:
+            colision_detectada = True
+            tipo_colision = 'ON_COLLISION_OBSTACLE'
+
+        if colision_detectada and self.dificultad == "nyan cat":
+            if self.invencible_activo:
+                return 
+                
+            if self.puntuacion > 0:
+                self.puntuacion = 0
+                self.invencible_hasta = time.time() + 1.5
+                self.invencible_activo = True
+                return  
+            else:
+                self.juego_terminado = True
+                return
+            
+        if colision_detectada:
+            if self.invencible_activo: return
+            self.ejecutar_evento(tipo_colision)
             return
 
-        # Movimiento valido
         self.serpiente_cuerpo.insert(0, nueva_cabeza)
         
-        # Logica de consumir objetos
         if nueva_cabeza == self.posicion_comida:
             self.ejecutar_evento('ON_EAT_FOOD')
-            # Las frutas venenosas van apareciendo mas acorde se avanza (40% de prob por comida)
-            if random.random() < 0.4: 
+            
+            config_actual = CONFIG_DIFICULTADES.get(self.dificultad, {})
+            prob_veneno = config_actual.get('probabilidad_veneno_por_comida', 0.4)
+            
+            if random.random() < prob_veneno: 
                 self.snake_spawn_element('POISON')
-            # Power up raro de invulnerabilidad temporal (10% de prob por comida)
+                
             if not self.posicion_powerup and random.random() < 0.2:
                 self.snake_spawn_element('POWERUP_INVINCIBLE')
                 
@@ -389,7 +482,6 @@ class Juego:
             self.posicion_powerup = None
             self.ejecutar_evento('ON_EAT_INVINCIBLE')
         
-        # Eliminar ultima parte de la cola si no creció en este tick
         if self.creciendo > 0:
             self.creciendo -= 1
         else:
@@ -443,4 +535,4 @@ if __name__ == "__main__":
         sys.exit(1)
     
     juego = Juego(datos_juego)
-    juego.run()
+    juego.root.mainloop() # Movemos el mainloop al script principal para soportar el menú previo
